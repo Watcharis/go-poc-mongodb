@@ -1,0 +1,57 @@
+ตัวอย่าง docker-compose.yaml สำหรับ MongoDB Sharded Cluster พร้อม authentication และรวม mongos ให้สมบูรณ์ (สำหรับการทดลองใน local):
+
+version: "3.8"
+services:
+  configsvr:
+    image: mongo
+    command: mongod --configsvr --replSet confReplSet --port 27019
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongoadmin
+      MONGO_INITDB_ROOT_PASSWORD: secretpass
+    ports:
+      - 27019:27019
+    volumes:
+      - ./data/configdb:/data/db
+  shard1:
+    image: mongo
+    command: mongod --shardsvr --replSet shard1ReplSet --port 27018
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongoadmin
+      MONGO_INITDB_ROOT_PASSWORD: secretpass
+    ports:
+      - 27018:27018
+    volumes:
+      - ./data/shard1:/data/db
+  mongos:
+    image: mongo
+    depends_on:
+      - configsvr
+      - shard1
+    command: mongos --configdb confReplSet/configsvr:27019 --bind_ip_all --port 27017
+    ports:
+      - 27017:27017
+
+
+คำอธิบาย
+
+มีทั้ง configsvr, shard1, mongos
+กำหนด username/password ใน configsvr และ shard1
+mongos จะรันที่พอร์ต 27017 รับคำสั่งจาก client
+ขั้นตอนหลังจากนี้
+
+รัน docker compose up -d
+เข้าไป initiate replica set ใน configsvr และ shard1:
+docker exec -it <configsvr_container_id> mongosh --port 27019 -u mongoadmin -p secretpass --authenticationDatabase admin
+# จากนั้น rs.initiate()
+docker exec -it <shard1_container_id> mongosh --port 27018 -u mongoadmin -p secretpass --authenticationDatabase admin
+# จากนั้น rs.initiate()
+
+เข้า mongos:
+docker exec -it <mongos_container_id> mongosh --port 27017 -u mongoadmin -p secretpass --authenticationDatabase admin
+# เพิ่ม shard ด้วย sh.addShard("shard1ReplSet/shard1:27018")
+
+หมายเหตุ:
+
+สร้างโฟลเดอร์ ./data/configdb และ ./data/shard1 ล่วงหน้าก่อนเริ่ม
+สำหรับ production ต้องมี shard/config server หลายตัว และ config security เพิ่มเติม
+ไฟล์นี้เหมาะสำหรับทดลอง sharding + auth บน local ด้วย Docker Compose ครับ!

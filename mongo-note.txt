@@ -1,0 +1,71 @@
+dockerHub : https://hub.docker.com/_/mongo
+
+mongo URI
+mongodb://root:example@0.0.0.0:27017/admin?retryWrites=true&w=majority&authSource=admin
+
+{
+  "user_id": "4980f3a6fae54e5aa14780617bb2f045",
+  "first_name": "user_1",
+  "last_name": "last_user_1",
+  "email": "user1@mongomail.com",
+  "phone_on": "0987776665",
+  "created_at": {
+    "$date": "2025-12-19T13:55:00.000Z"
+  }
+},
+{
+  "user_id": "4980f3a6fae54e5aa14780617bb2f046",
+  "first_name": "user_2",
+  "last_name": "last_user_2",
+  "email": "user2@mongomail.com",
+  "phone_on": "0987776666",
+  "created_at": {
+    "$date": "2025-12-19T13:55:00.000Z"
+  }
+}
+
+db.users.updateMany({},[
+  { 
+    $replaceRoot: { 
+    newRoot: { 
+      $mergeObjects: [ 
+        "$$ROOT", 
+        { 
+          full_name: { 
+            $concat: [ "$first_name", " ", "$last_name" ] 
+          } 
+        } 
+      ] 
+    } 
+    } 
+  },
+  { $set: { updated_at: "$$NOW" } }
+])
+
+
+db.users.aggregate([
+  {$match: {_id: ObjectId('6945141cb0361299495b7079')}},
+  {$addFields: { born_date:{$ifNull:["$$NOW", "$$REMOVE"]}} },
+  {$replaceRoot: {newRoot: {$mergeObjects: [{cid: "1199022901564"}, "$$ROOT"]}}},
+  {$project: {_id: 1, user_id: 1, full_name: 1, born_date: 1, cid: 1}}
+])
+
+db.sales.aggregate([
+  {$group: {_id: "$item", count: {$sum: 1}}},
+  {$match: {count : {$gt: 2}}}
+])
+
+select item, count(item) as count from sales group by item having count(item) > 2;
+
+db.sales.find().sort({quantity: -1, _id: 1 }).skip(2).limit(2)
+ปัญหาที่คุณเจอเกิดจากการที่คุณใช้ sort({quantity: -1}) แล้วค่อย skip(), limit() โดย field quantity มีค่าซ้ำกันหลายแถว (เช่น 10) ซึ่ง MongoDB จะไม่รับประกันลำดับของ document ที่มีค่า quantity เท่ากันเมื่อใช้ skip() และ limit() ส่งผลให้ผลลัพธ์แต่ละรอบอาจจะไม่สอดคล้องกัน
+
+วิธีแก้ไข:
+ควรรวม _id ไว้ใน sort ด้วย เพื่อให้ผลลัพธ์มีความแน่นอน เช่น
+
+// -1 desc , 1 asc
+db.sales.find().sort({ quantity: -1, _id: 1 }).skip(2).limit(2) 
+
+แบบนี้ MongoDB จะจัดเรียงโดยดู quantity ก่อน ถ้าตรงกันจะเรียงตาม _id อีกที ทำให้ผล skip() และ limit() ถูกต้องทุกครั้ง
+
+สรุป: เวลามีค่าซ้ำใน field ที่ sorting, ให้ sort เพิ่มเติมด้วย field ที่ unique (เช่น _id) เพื่อผลลัพธ์ที่ถูกต้อง.

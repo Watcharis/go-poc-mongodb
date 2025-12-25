@@ -1,0 +1,46 @@
+services:
+  mongo:
+    image: mongo
+    container_name: mongodb-poc
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./db_data/:/data/db/
+      # - init-mongo:/docker-entrypoint-initdb.d:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+# version: "3.8"
+# services:
+#   configsvr:
+#     image: mongo
+#     command: mongod --configsvr --replSet confReplSet --port 27019
+#     environment:
+#       MONGO_INITDB_ROOT_USERNAME: mongoadmin
+#       MONGO_INITDB_ROOT_PASSWORD: secretpass
+#     ports:
+#       - 27019:27019
+#     volumes:
+#       - ./data/configdb:/data/db
+
+#   shard1:
+#     image: mongo
+#     command: mongod --shardsvr --replSet shard1ReplSet --port 27018
+#     environment:
+#       MONGO_INITDB_ROOT_USERNAME: mongoadmin
+#       MONGO_INITDB_ROOT_PASSWORD: secretpass
+#     ports:
+#       - 27018:27018
+#     volumes:
+#       - ./data/shard1:/data/db
+
+#   mongos:
+#     image: mongo
+#     depends_on:
+#       - configsvr
+#       - shard1
+#     command: mongos --configdb confReplSet/configsvr:27019 --bind_ip_all --port 27017
+#     ports:
+#       - 27017:27017
