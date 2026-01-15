@@ -1,5 +1,5 @@
 .vscode
-.db_data
+/db_data/
 .env
 .idea
 .DS_Store
