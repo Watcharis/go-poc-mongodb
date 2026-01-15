@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
+	"watcharis/go-poc-mongodb/models"
 	"watcharis/go-poc-mongodb/repository/mongodb"
 
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -87,15 +90,15 @@ func main() {
 	}
 
 	// Find One by objectID
-	userId := "6945141cb0361299495b7078"
-	resultFindOneUser, err := userRepository.GetUserById(ctx, userId)
+	userObjectId := "6945141cb0361299495b7078"
+	resultFindOneUser, err := userRepository.GetUserById(ctx, userObjectId)
 	if err != nil {
 		panic(err)
 	}
 	log.Printf("Find One User: %+v\n", resultFindOneUser)
 
 	// Update One by objectID
-	updateResult, err := userRepository.UpdateUserPhoneOnById(ctx, userId, "0994443331")
+	updateResult, err := userRepository.UpdateUserPhoneOnById(ctx, userObjectId, "0994443331")
 	if err != nil {
 		panic(err)
 	}
@@ -107,4 +110,37 @@ func main() {
 		panic(err)
 	}
 	log.Println("Aggregate Users:", resultAggregateUser)
+
+	// Generate UserID
+	newUserID, err := GenerateUserId()
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("Generated UserID: %v\n", newUserID)
+
+	// Insert One user
+	newUser := models.Users{
+		UserID:    newUserID,
+		FirstName: "John",
+		LastName:  "Doe",
+		FullName:  "John Doe",
+		Email:     "user_1001@mail.com",
+		PhoneOn:   "0998887776",
+		CreatedAt: time.Now(),
+		UpdatedAt: nil,
+	}
+	resultInsertUser, err := userRepository.InsertUser(ctx, newUser)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("Inserted user with ID: %v\n", resultInsertUser.InsertedID)
+}
+
+func GenerateUserId() (string, error) {
+	uuid, err := uuid.NewV7()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.ReplaceAll(uuid.String(), "-", ""), nil
 }

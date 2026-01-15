@@ -2,6 +2,8 @@ package mongodb
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 	"watcharis/go-poc-mongodb/models"
 
@@ -51,6 +53,9 @@ func (r *userRepository) GetUserById(ctx context.Context, id string) (models.Use
 
 	var user models.Users
 	if err := r.UsersCollection().FindOne(ctx, bson.D{{Key: "_id", Value: objectId}}).Decode(&user); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return models.Users{}, fmt.Errorf("%s, _id: ObjectID(\"%s\")", mongo.ErrNoDocuments.Error(), objectId.Hex())
+		}
 		return models.Users{}, err
 	}
 
@@ -208,3 +213,30 @@ func (r *userRepository) AggregateUsers(ctx context.Context) ([]bson.M, error) {
 
 	return users, nil
 }
+
+func (r *userRepository) InsertUser(ctx context.Context, user models.Users) (*mongo.InsertOneResult, error) {
+	result, err := r.UsersCollection().InsertOne(ctx, user, options.InsertOne().SetBypassDocumentValidation(false))
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (r *userRepository) RemoveUserById(ctx context.Context, id string) (*mongo.DeleteResult, error) {
+	objectId, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := r.UsersCollection().DeleteOne(ctx, bson.D{{Key: "_id", Value: objectId}})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// func (r *userRepository) update(ctx context.Context, id string) (*mongo.DeleteResult, error) {
+
+// }

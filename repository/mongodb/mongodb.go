@@ -19,4 +19,6 @@ type UserRepository interface {
 	GetAllUsers(ctx context.Context) ([]bson.M, error)
 	UpdateUserPhoneOnById(ctx context.Context, id string, phoneOn string) (*mongo.UpdateResult, error)
 	AggregateUsers(ctx context.Context) ([]bson.M, error)
+	InsertUser(ctx context.Context, user models.Users) (*mongo.InsertOneResult, error)
+	RemoveUserById(ctx context.Context, id string) (*mongo.DeleteResult, error)
 }
