@@ -10,15 +10,16 @@ import (
 	"watcharis/go-poc-mongodb/repository/mongodb"
 
 	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/event"
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
-	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 const (
-	MONGODB_URI           = "mongodb://root:example@0.0.0.0:27017/admin?retryWrites=true&w=majority&authSource=admin&maxPoolSize=20&connectTimeoutMS=10000"
+	// MONGODB_URI           = "mongodb://root:example@0.0.0.0:27017/admin?replicaSet=rs0&directConnection=true&retryWrites=true&w=majority&authSource=admin&maxPoolSize=20&connectTimeoutMS=10000"
+	MONGODB_URI           = "mongodb://root:example@0.0.0.0:27017/admin?retryWrites=true&w=majority&authSource=admin&maxPoolSize=20&connectTimeoutMS=10000&replicaSet=rs0&directConnection=true"
 	MONGODB_DATABASE_NAME = "go-poc-mongodb"
 	DEV_MODE              = true
 )
@@ -46,13 +47,19 @@ func main() {
 
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 
+	rp, err := readpref.New(readpref.PrimaryMode)
+	if err != nil {
+		log.Printf("ERROR init mongo readpref.PrimaryMode : %+v\n", err)
+	}
+
 	// connect to MongoDB
-	client, err := mongo.Connect(options.Client().ApplyURI(MONGODB_URI).
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(MONGODB_URI).
+		SetReadPreference(rp).
 		SetMaxPoolSize(20).
 		SetMaxConnecting(20).
 		SetMaxConnIdleTime(10).
-		SetMaxConnIdleTime(time.Duration(10000 * time.Millisecond)).
-		SetConnectTimeout(time.Duration(10000 * time.Millisecond)).
+		SetMaxConnIdleTime(time.Duration(10000*time.Millisecond)).
+		SetConnectTimeout(time.Duration(10000*time.Millisecond)).
 		SetServerAPIOptions(serverAPI).
 		SetMonitor(monitor))
 	if err != nil {
@@ -66,7 +73,7 @@ func main() {
 	}()
 
 	// ping MongoDB
-	if err := client.Ping(ctx, &readpref.ReadPref{}); err != nil {
+	if err := client.Ping(ctx, rp); err != nil {
 		panic(err)
 	}
 	fmt.Println("Connected to MongoDB!")

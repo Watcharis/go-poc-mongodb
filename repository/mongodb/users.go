@@ -7,9 +7,10 @@ import (
 	"time"
 	"watcharis/go-poc-mongodb/models"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type userRepository struct {
@@ -46,7 +47,7 @@ func (r *userRepository) GetAllUsers(ctx context.Context) ([]bson.M, error) {
 
 // GetUserById ... use struct model
 func (r *userRepository) GetUserById(ctx context.Context, id string) (models.Users, error) {
-	objectId, err := bson.ObjectIDFromHex(id)
+	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return models.Users{}, err
 	}
@@ -64,7 +65,7 @@ func (r *userRepository) GetUserById(ctx context.Context, id string) (models.Use
 
 // GetUserByIdUseBson ... use bson.M
 func (r *userRepository) GetUserByIdUseBson(ctx context.Context, id string) (bson.M, error) {
-	objectId, err := bson.ObjectIDFromHex(id)
+	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +79,7 @@ func (r *userRepository) GetUserByIdUseBson(ctx context.Context, id string) (bso
 }
 
 func (r *userRepository) UpdateUserPhoneOnById(ctx context.Context, id string, phoneOn string) (*mongo.UpdateResult, error) {
-	objectId, err := bson.ObjectIDFromHex(id)
+	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +102,8 @@ func (r *userRepository) UpdateUserPhoneOnById(ctx context.Context, id string, p
 				},
 			},
 		},
-		options.UpdateOne().SetUpsert(true),
+		// options.UpdateOne().SetUpsert(true),
+		options.Update().SetUpsert(true),
 	)
 	if err != nil {
 		return nil, err
@@ -224,7 +226,7 @@ func (r *userRepository) InsertUser(ctx context.Context, user models.Users) (*mo
 }
 
 func (r *userRepository) RemoveUserById(ctx context.Context, id string) (*mongo.DeleteResult, error) {
-	objectId, err := bson.ObjectIDFromHex(id)
+	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}

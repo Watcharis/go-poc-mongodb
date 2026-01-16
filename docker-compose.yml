@@ -1,16 +1,23 @@
 services:
   mongo:
-    image: mongo
+    image: mongo:latest
+    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/data/configdb/mongo-keyfile"]
     container_name: mongodb-poc
     restart: always
     ports:
       - 27017:27017
     volumes:
+      - ./mongo-keyfile:/data/configdb/mongo-keyfile
       - ./db_data/:/data/db/
       # - init-mongo:/docker-entrypoint-initdb.d:ro
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
+    entrypoint: >
+      bash -c "
+      chown 999:999 /data/configdb/mongo-keyfile &&
+      exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/configdb/mongo-keyfile
+      "
 
 # version: "3.8"
 # services:
