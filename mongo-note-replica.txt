@@ -5,12 +5,14 @@
 
 หากต้องการใช้ทั้ง User/Password และ Replica Set ต้องทำตามขั้นตอนดังนี้ครับ:
 
+###### ------ 
 1. สร้างไฟล์ Key (รันที่เครื่อง Host ของคุณ):
 # สร้างไฟล์สุ่มขนาด 756 bytes
 openssl rand -base64 756 > mongo-keyfile
 # สำคัญมาก: ต้องแก้ permission ให้เป็นอ่านได้อย่างเดียว
 chmod 400 mongo-keyfile
 
+###### ------ 
 2. แก้ไข docker-compose.yml:
 ต้องทำการ Mount ไฟล์ Key เข้าไปและตั้งค่าให้ MongoDB รู้จักไฟล์นี้ครับ:
 yaml
