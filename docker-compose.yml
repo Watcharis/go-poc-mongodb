@@ -18,7 +18,12 @@ services:
       chown 999:999 /data/configdb/mongo-keyfile &&
       exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/configdb/mongo-keyfile
       "
+    networks:
+      - poc-debezium_default
 
+networks:
+  poc-debezium_default:
+    external: true
 # version: "3.8"
 # services:
 #   configsvr:

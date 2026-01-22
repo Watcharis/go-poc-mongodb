@@ -1,0 +1,41 @@
+ในปี 2026 มาตรฐานความปลอดภัยของ MongoDB กำหนดว่า "ถ้าคุณเปิดโหมด Authen (User/Password) พร้อมกับโหมด Replica Set คุณต้องมี KeyFile" 
+เพื่อให้ Node ต่างๆ ในชุด Replica คุยกันได้อย่างปลอดภัยครับ
+
+วิธีที่ 2: สร้าง KeyFile (วิธีที่ถูกต้องสำหรับใช้งานจริง)
+
+หากต้องการใช้ทั้ง User/Password และ Replica Set ต้องทำตามขั้นตอนดังนี้ครับ:
+
+1. สร้างไฟล์ Key (รันที่เครื่อง Host ของคุณ):
+# สร้างไฟล์สุ่มขนาด 756 bytes
+openssl rand -base64 756 > mongo-keyfile
+# สำคัญมาก: ต้องแก้ permission ให้เป็นอ่านได้อย่างเดียว
+chmod 400 mongo-keyfile
+
+2. แก้ไข docker-compose.yml:
+ต้องทำการ Mount ไฟล์ Key เข้าไปและตั้งค่าให้ MongoDB รู้จักไฟล์นี้ครับ:
+yaml
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    # เพิ่ม --keyFile เข้าไปใน command
+    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/data/configdb/mongo-keyfile"]
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    volumes:
+      - ./mongo-keyfile:/data/configdb/mongo-keyfile
+    # สำคัญ: ต้องเปลี่ยน owner ของไฟล์ใน container เป็น user mongo
+    entrypoint: >
+      bash -c "
+      chown 999:999 /data/configdb/mongo-keyfile &&
+      exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/configdb/mongo-keyfile
+      "
+      
+ทำไมต้องมี entrypoint และ chown?
+MongoDB เข้มงวดมากว่าไฟล์ Key จะต้องถูกครอบครองโดย User ที่รัน MongoDB เท่านั้น (UID 999) และห้ามคนอื่นอ่าน ถ้า Permission ไม่เป๊ะ Container จะดับทันทีครับ
+ขั้นตอนสุดท้ายหลังจากรันขึ้นแล้ว:
+อย่าลืมสั่ง Initiate ตามเดิมอีกครั้งครับ:
+
+bash
+docker exec -it mongodb mongosh -u root -p example --eval "rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]})"
